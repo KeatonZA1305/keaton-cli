@@ -15,6 +15,7 @@ import importlib
 from . import __version__
 from . import auth as auth_mod
 from . import toolcli
+from . import marketcli
 from .tools import registry
 from .config import update_config, load_config
 
@@ -339,6 +340,8 @@ def ask(
 
 # Wire in the Universal Tool Execution Framework commands.
 toolcli.register(app)
+# Wire in the marketplace commands (install / update / remove / marketplace).
+marketcli.register(app)
 
 
 if __name__ == "__main__":

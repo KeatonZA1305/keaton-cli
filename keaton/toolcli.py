@@ -75,11 +75,36 @@ def tool_command(name: str) -> None:
     console.print(Panel("\n".join(body), title=f"keaton · {tool.name}", border_style="blue"))
 
 
+def _marketplace_hint(request: str):
+    """If the request names an installable marketplace tool, suggest installing it."""
+    try:
+        from .tui import marketplace as mkt
+    except Exception:
+        return None
+    words = [w for w in request.lower().replace("-", " ").split() if len(w) > 1]
+    for it in mkt.CATALOG:
+        names = {it.key.lower(), it.name.lower(), it.binary.lower()}
+        tokens = set(it.name.lower().split()) | names
+        if names & set(words) or tokens & set(words):
+            verb = "already installed" if mkt.installed(it) else "installable"
+            return (f"[cyan]{it.name}[/cyan] is a marketplace tool ({verb}), not a "
+                    f"runnable command.\nInstall it with: [bold]keaton install {it.key}[/bold]"
+                    f"   ·   details: [bold]keaton marketplace {it.key}[/bold]")
+    return None
+
+
 def run_command(request: str, dry_run: bool = False, yes: bool = False) -> None:
     """`keaton run "<what you want>"` — route to a tool and show/execute it."""
     ranked = registry.route(request)
     if not ranked:
-        console.print("[yellow]No matching tool. Try 'keaton tools' to see what's available.[/yellow]")
+        # Maybe they named something installable (e.g. "claude", "docker").
+        hint = _marketplace_hint(request)
+        if hint:
+            console.print(hint)
+        else:
+            console.print("[yellow]No matching tool.[/yellow] Try [bold]keaton tools[/bold] "
+                          "for what Keaton can run, or [bold]keaton marketplace[/bold] to "
+                          "install something new.")
         raise typer.Exit(1)
 
     tool = ranked[0]
