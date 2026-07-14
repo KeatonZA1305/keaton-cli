@@ -2262,18 +2262,28 @@ fi
 
 if [[ "$PUBLISH" == "1" ]]; then
   if command -v gh >/dev/null 2>&1; then
-    say "Creating PUBLIC GitHub repo '$REPO_NAME'…"
+    OWNER="$(gh api user --jq .login 2>/dev/null)"
     if gh repo view "$REPO_NAME" >/dev/null 2>&1; then
-      say "Repo already exists — pushing to it."
-      git push -u origin main
+      say "GitHub repo '$REPO_NAME' already exists — wiring 'origin' and pushing."
+      # The bug this fixes: the old code pushed to 'origin' without ever adding it.
+      if ! git remote get-url origin >/dev/null 2>&1; then
+        git remote add origin "https://github.com/$OWNER/$REPO_NAME.git"
+      fi
+      git fetch -q origin 2>/dev/null || true
+      if ! git push -u origin main 2>/dev/null; then
+        echo "Push rejected: the remote has unrelated history (e.g. a README/license"
+        echo "created on github.com). If you mean to replace it with this project, run:"
+        echo "    git push --force-with-lease origin main"
+      fi
     else
+      say "Creating PUBLIC GitHub repo '$REPO_NAME'…"
       gh repo create "$REPO_NAME" --public --source=. --remote=origin --push \
-        --description "An AI operating system for your terminal that orchestrates real developer tools."
+        --description "An AI operating system for your terminal that runs the right developer tool from plain English."
     fi
-    ok "Published: $(gh repo view --json url -q .url 2>/dev/null || echo "$REPO_NAME")"
+    ok "Published: $(gh repo view "$REPO_NAME" --json url -q .url 2>/dev/null || echo "$REPO_NAME")"
   else
     echo "gh CLI not found — install it or push manually:"
-    echo "  git remote add origin git@github.com:<you>/$REPO_NAME.git && git push -u origin main"
+    echo "  git remote add origin https://github.com/<you>/$REPO_NAME.git && git push -u origin main"
   fi
 else
   echo
