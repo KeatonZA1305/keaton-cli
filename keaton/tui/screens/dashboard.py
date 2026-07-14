@@ -55,11 +55,19 @@ class Dashboard(ListScreen):
             left.append(f"    {len(projs)} recent project", style=t.dim)
             left.append("s" if len(projs) != 1 else "", style=t.dim)
 
+        ai = Text()
+        provider = self.app.config.get("provider", "base44")
+        model = self.app.config.get("default_model") or "default model"
+        ai.append("AI   ", style=f"bold {t.accent}")
+        ai.append(f"{provider}", style=t.muted)
+        ai.append(f" · {model}", style=t.dim)
+        ai.append("    change in Settings", style=t.dim)
+
         tip = TIPS[date.today().toordinal() % len(TIPS)]
         tip_line = Text()
         tip_line.append("Tip  ", style=f"bold {t.accent}")
         tip_line.append(tip, style=t.muted)
-        return Group(left, Text(""), tip_line)
+        return Group(left, Text(""), ai, Text(""), tip_line)
 
     def render_body(self, width: int, height: int):
         from rich.rule import Rule
