@@ -4,6 +4,7 @@ from __future__ import annotations
 from rich.console import Group
 from rich.text import Text
 
+from ...providers.factory import PROVIDER_NAMES
 from .. import keys as K
 from ..theme import ACCENTS
 from ..widgets import MenuItem, edit_text
@@ -11,8 +12,9 @@ from .base import ListScreen
 
 # (config key, label, kind, default). kind: toggle | cycle | text | action
 SETTINGS = [
-    ("accent", "Accent colour", "cycle", "cyan"),
+    ("provider", "AI provider", "cycle", "base44"),
     ("default_model", "Default AI model", "text", ""),
+    ("accent", "Accent colour", "cycle", "cyan"),
     ("animations", "Terminal animations", "toggle", True),
     ("auto_update", "Auto update checks", "toggle", True),
     ("stream_enabled", "Stream AI responses", "toggle", True),
@@ -23,6 +25,12 @@ SETTINGS = [
 ]
 _SPEC = {s[0]: s for s in SETTINGS}
 _ACCENT_KEYS = list(ACCENTS)
+
+# Options for each "cycle" setting.
+CYCLE_OPTIONS = {
+    "accent": _ACCENT_KEYS,
+    "provider": PROVIDER_NAMES,
+}
 
 
 class SettingsScreen(ListScreen):
@@ -85,9 +93,10 @@ class SettingsScreen(ListScreen):
             self.app.set_config(key, not self._value(key, spec[3]))
             self.reload()
         elif kind == "cycle":
+            options = CYCLE_OPTIONS.get(key, [spec[3]])
             cur = self._value(key, spec[3])
-            nxt = _ACCENT_KEYS[(_ACCENT_KEYS.index(cur) + 1) % len(_ACCENT_KEYS)] \
-                if cur in _ACCENT_KEYS else _ACCENT_KEYS[0]
+            nxt = options[(options.index(cur) + 1) % len(options)] \
+                if cur in options else options[0]
             self.app.set_config(key, nxt)
             self.reload()
         elif kind == "text":

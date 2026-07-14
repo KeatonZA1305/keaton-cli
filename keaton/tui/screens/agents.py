@@ -17,6 +17,12 @@ class AgentsScreen(ListScreen):
             for a in agents.AGENTS
         ]
 
+    def footer_hints(self):
+        if self.searching:
+            return super().footer_hints()
+        return [("↑↓/jk", "move"), ("enter", "open chat"), ("/", "search"),
+                ("esc", "back"), ("^c", "quit")]
+
     def on_select(self, item):
         from .chat import ChatScreen
         agent = agents.get(item.value)

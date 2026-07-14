@@ -14,7 +14,6 @@ from typing import List, Optional
 
 from rich.console import Group
 from rich.markdown import Markdown
-from rich.rule import Rule
 from rich.segment import Segment, Segments
 from rich.text import Text
 
@@ -75,8 +74,10 @@ class ChatScreen(Screen):
         return Group(*blocks)
 
     def render_body(self, width: int, height: int):
+        from ..widgets import rounded_panel
+
         t = self.theme
-        input_rows = 2
+        input_rows = 3           # bordered input box
         notice_rows = 1 if self.notice else 0
         avail = max(3, height - input_rows - notice_rows - 1)
 
@@ -91,16 +92,22 @@ class ChatScreen(Screen):
             segs.append(Segment("\n"))
         transcript = Segments(segs)
 
-        prompt = Text(no_wrap=True, overflow="ellipsis")
+        inner = Text(no_wrap=True, overflow="ellipsis")
         if self.streaming:
-            prompt.append(f"{SPINNER[self._tick % len(SPINNER)]} ", style=t.accent)
-            prompt.append("thinking…", style=t.dim)
+            inner.append(f"{SPINNER[self._tick % len(SPINNER)]} ", style=t.accent)
+            inner.append("thinking…", style=t.dim)
         else:
-            prompt.append("❯ ", style=t.accent)
-            prompt.append(self.buffer, style="default")
-            prompt.append("▏", style=t.accent)
+            inner.append("❯ ", style=t.accent)
+            if self.buffer:
+                inner.append(self.buffer, style="default")
+                inner.append("▏", style=t.accent)
+            else:
+                inner.append("Type your message and press Enter", style=t.dim)
+                inner.append("    ·  /help for commands", style=t.dim)
+        input_box = rounded_panel(inner, title=f"message · {self.provider_name}",
+                                  theme=t, active=True, padding=(0, 1))
 
-        parts = [transcript, Rule(style=t.border), prompt]
+        parts = [transcript, input_box]
         if self.notice:
             parts.append(Text(self.notice, style=t.dim))
         return Group(*parts)

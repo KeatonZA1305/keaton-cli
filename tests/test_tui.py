@@ -119,6 +119,38 @@ def test_settings_toggle_persists_in_memory():
     assert app.config.get("animations") == (not before)
 
 
+def test_settings_provider_cycles_through_all_providers():
+    from keaton.providers.factory import PROVIDER_NAMES
+    from keaton.tui.screens.settings import SettingsScreen
+
+    app = _app()
+    app.config["provider"] = PROVIDER_NAMES[0]
+    screen = SettingsScreen(app)
+    app.stack = [screen]
+    seen = [app.config["provider"]]
+    for _ in range(len(PROVIDER_NAMES)):
+        item = next(i for i in screen.menu.items if i.value == "provider")
+        screen.on_select(item)
+        seen.append(app.config["provider"])
+    # cycling N times returns to the start and visits every provider
+    assert set(PROVIDER_NAMES) <= set(seen)
+    assert seen[0] == seen[-1] == PROVIDER_NAMES[0]
+
+
+def test_chat_input_box_shows_placeholder_and_provider():
+    from keaton.tui.screens.chat import ChatScreen
+
+    app = _app()
+    app.config["provider"] = "ollama"
+    chat = ChatScreen(app, agents.default())
+    app.stack = [chat]
+    chat.on_enter()
+    app.console.print(app.render_frame())
+    out = app.console.export_text()
+    assert "Type your message and press Enter" in out
+    assert "message" in out and "ollama" in out
+
+
 # -- chat -----------------------------------------------------------------
 def test_chat_streams_from_provider():
     from keaton.tui.screens.chat import ChatScreen
