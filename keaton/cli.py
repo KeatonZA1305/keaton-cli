@@ -15,7 +15,6 @@ import importlib
 from . import __version__
 from . import auth as auth_mod
 from . import toolcli
-from . import splash as splash_mod
 from .tools import registry
 from .config import update_config, load_config
 
@@ -89,7 +88,7 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     version: Optional[bool] = typer.Option(
@@ -97,11 +96,17 @@ def main(
     ),
 ):
     """Keaton — Universal AI Terminal Platform."""
-    # Startup pixel-art splash. Skipped for the `splash` replay command, when
-    # output isn't a TTY, or when disabled (config / KEATON_NO_SPLASH). Never
-    # raises — see splash.maybe_play.
-    if ctx.invoked_subcommand != "splash":
-        splash_mod.maybe_play(console)
+    # Bare `keaton` opens the interactive dashboard (the home screen). Any
+    # explicit subcommand (chat, tools, doctor, …) runs as before.
+    if ctx.invoked_subcommand is None:
+        import sys
+        if sys.stdout.isatty() and sys.stdin.isatty():
+            from .tui.app import launch
+            launch(config=load_config())
+        else:
+            console.print("Keaton — run in an interactive terminal for the dashboard, "
+                          "or try [bold]keaton --help[/bold], [bold]keaton tools[/bold], "
+                          "[bold]keaton run \"...\"[/bold].")
 
 
 @app.command()
@@ -186,9 +191,17 @@ def config():
 
 
 @app.command()
+def home():
+    """Open the interactive dashboard (same as running `keaton`)."""
+    from .tui.app import launch
+    launch(config=load_config())
+
+
+@app.command()
 def splash():
-    """Replay the startup pixel-art animation."""
-    splash_mod.play(console)
+    """Replay the ocean wave intro animation."""
+    from .tui import wave
+    wave.animate(console)
 
 
 @app.command()
